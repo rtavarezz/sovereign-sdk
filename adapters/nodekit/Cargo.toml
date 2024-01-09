@@ -1,0 +1,36 @@
+[package]
+name = "nodekit_sov_adapter"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# The only required dependency for a DA adapter is the Sovereign SDK...
+sov-rollup-interface = "0.3.0"
+nodekit_seq_sdk = { git = "https://github.com/AnomalyFi/rust-seq-rpc" }
+reqwest = { version = "0.11.22", features = ["json"] }
+tokio = { version = "1.34.0", features = ["full"] }
+async-trait = "0.1.75"
+# NodeKit crate cleardy defined here: 
+# Did cargo add which proves that the crate exists on https://crates.io/crates/nodekit_seq_sdk
+# nodekit_seq_sdk = "0.1.2"
+serde = { version = "1.0.192", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+anyhow = { version = "1.0.68", default-features = false }
+sha2 = { version = "0.10.6", default-features = false }
+time = "0.3.31"
+bs58 = "0.5.0"
+hex = "0.4.3"
+borsh = { version = "0.10.3", default-features = false }
+
+# But we suspect that most implementations will want one or more of the following crates
+# tracing = { version = "0.1.40", default-features = false }
+# serde = { version = "1", features = ["derive"] }
+# Derive borsh for instant implementations of the Sovereign SDK's encode/decode traits
+# borsh = { version = "0.10.3", features = ["bytes"] }
+
+[features]
+default = ["native"]
+native = []
+verifier = []
