@@ -34,9 +34,8 @@ async fn main() {
 async fn test_finalized(chain_id: String, url_new: String, namespace: String, secondary_id: Vec<u8>, network_id: u32, height: u64) -> Result<(NodeKitFilteredBlock, NodeKitFilteredBlock), Box<dyn std::error::Error>> {
         let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace, secondary_id).map_err(|e| e as Box<dyn std::error::Error>)?;
         //testing finalized and block height funcs below
-        let end = 0; //placeholder
         //let end be current time unix epoch millis like u did in rust sdk.
-        let block_head = match cli.jsonrpc.get_block_headers_by_height(height, end) {
+        let block_head = match cli.jsonrpc.get_block_headers_by_height(height, 0) {
             Ok(res) => res,
             Err(err) => return Err(err),
         };
@@ -95,7 +94,7 @@ async fn test_extract_relevant_blobs() -> Result<(), Box<dyn std::error::Error>>
     let network_id = 0;
     let height = "?".to_string();
     let height = height.trim().parse::<u64>().expect("Failed to parse height");
-
+    //u64 is 0
     //new NodeKitClient instance.
     let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace, secondary_id).unwrap();
 
