@@ -1,18 +1,13 @@
 use core::{future::Future, pin::Pin};
 use sov_rollup_interface::services::da::DaService;
 use sov_rollup_interface::services::da::SlotData;
-use crate::DaLayerSpec;
-use crate::DaSpec;
-use crate::verifier::NodeKitVerifier;
-use crate::SEQTxs;
-use crate::NodeKitValidity;
-use crate::NodeKitBlockInfo;
+use crate::da_spec::spec::{SEQTxs, NodeKitBlockInfo, NodeKitValidity, DaLayerSpec};
+use crate::da_verifier::verifier::NodeKitVerifier;
+use sov_rollup_interface::da::DaSpec;
 //check repo: https://github.com/AnomalyFi/rust-seq-rpc
 //for getting block information
 use nodekit_seq_sdk;
 use nodekit_seq_sdk::client::jsonrpc_client::*;
-//for sending requests
-
 //types of all methods
 use nodekit_seq_sdk::types::types::*;
 use std::sync::Arc;
@@ -24,18 +19,18 @@ use sha2::{Sha256, Digest};
 use ::serde::{Serialize, Deserialize};
 
 pub struct NodeKitClient {
-    rollup_namespace: String,
-    jsonrpc: JSONRPCClient,
-    uri: String,
-    secondary_chain_id: Vec<u8>,
+    pub rollup_namespace: String,
+    pub jsonrpc: JSONRPCClient,
+    pub uri: String,
+    pub secondary_chain_id: Vec<u8>,
 
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NodeKitFilteredBlock {
-    header: NodeKitBlockInfo,
+    pub header: NodeKitBlockInfo,
     //todo: raw txs data or hashed tx data(SEQTxs)?
-    transactions: Vec<SEQTransaction>,
+    pub transactions: Vec<SEQTransaction>,
     //needs proofs
 }
 
@@ -179,7 +174,7 @@ impl DaService for NodeKitClient {
                     // Handle errors during block header fetching
                     Err(e) => {
                         // Return an error with details
-                        return Err(anyhow::anyhow!("Error fetching block headers: {}", e).into());
+                        return Err(anyhow::anyhow!("{} {}", "Error fetching block headers: {}".to_owned() + &height.to_string(), e).into());
                     }
                 }
             }
@@ -230,7 +225,7 @@ impl DaService for NodeKitClient {
                 };
                 Ok(filtered_block)
             } else {
-                return Err(anyhow::anyhow!("block filtering failed").into());
+                return Err(anyhow::anyhow!("{}", "block at height: ".to_owned() + &height.to_string() + ", failed").into());
             }
         })
     }

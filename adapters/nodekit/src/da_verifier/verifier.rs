@@ -1,8 +1,7 @@
 use sov_rollup_interface::da::DaVerifier;
+use sov_rollup_interface::da::DaSpec;
 // use serde::{Deserialize, Serialize};
-use crate::DaLayerSpec;
-use crate::DaSpec;
-use crate::NodeKitValidity;
+use crate::da_spec::spec::{NodeKitValidity, DaLayerSpec};
 pub struct NodeKitVerifier;
 
 impl DaVerifier for NodeKitVerifier {

@@ -11,7 +11,6 @@ use sov_rollup_interface::da::NanoSeconds;
 use sov_rollup_interface::zk::ValidityCondition as Validity;
 use ::serde::{Serialize, Deserialize};
 use borsh::{BorshDeserialize, BorshSerialize};
-
 use bs58;
 use core::convert::TryFrom;
 use std::str::FromStr;
@@ -20,17 +19,20 @@ use sha2::Digest;
 use core::fmt::Display;
 use anyhow::Error;
 
-#[cfg(feature = "native")]
-mod service;
-mod verifier;
+//todo: figure out if this is needed as it isnt really used as im not importing these,
+//or if i do i simply call the crate, otherwise i get error saying mod.rs doesn't exist,
+//when it does exist, just struggles to find the path.
+// #[cfg(feature = "native")]
+// mod service;
+// mod verifier;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct DaLayerSpec;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NodeKitBlockInfo {
-    block: BlockInfo,
-    header: BlockHeadersResponse
+    pub block: BlockInfo,
+    pub header: BlockHeadersResponse
 }
 
 impl Eq for NodeKitBlockInfo {}
@@ -43,7 +45,7 @@ impl PartialEq for NodeKitBlockInfo {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq, Hash)]
 pub struct NodeKitHash(pub [u8; 32]);
 
 impl NodeKitHash {
@@ -152,7 +154,7 @@ impl Display for NodeKitAddress {
 impl Address for NodeKitAddress {}
 
 #[derive(Serialize, Deserialize)]
-pub struct SEQTxs(SEQTransaction);
+pub struct SEQTxs(pub SEQTransaction);
 //same idea and approach as BlockHeaderTrait
 impl BlobReader for SEQTxs {
     type Address = NodeKitAddress;
@@ -175,8 +177,8 @@ impl BlobReader for SEQTxs {
 
 #[derive(Serialize, Deserialize, Debug, Copy, Eq, Hash, Default, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct NodeKitValidity {
-    past: [u8; 32],
-    block: [u8; 32],
+    pub past: [u8; 32],
+    pub block: [u8; 32],
 }
 //TODO: to be implemented in next version
 impl Validity for NodeKitValidity {
