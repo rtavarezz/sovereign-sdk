@@ -4,6 +4,7 @@ mod da_spec;
 use sov_rollup_interface::services::da::DaService;
 use nodekit_seq_sdk::client::jsonrpc_client::*;
 use crate::da_service::service::*;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[tokio::main]
 async fn main() {
@@ -12,8 +13,8 @@ async fn main() {
     let url_new = "?".to_string();
     let namespace = "?".to_string();
     let secondary_id = "?".as_bytes().to_vec();
-    let network_id = 321; //insert the value, this is an example
-    let height = 123; //insert the value, this is an example 
+    let network_id = 1337; //insert the value, this is an example
+    let height = 77; //insert the value, this is an example 
     
     match test_finalized(chain_id.trim().to_string(), url_new.trim().to_string(), namespace.trim().to_string(), secondary_id, network_id, height).await {
         Ok(_) => println!("test_finalized succeeded"),
@@ -34,20 +35,25 @@ async fn main() {
 async fn test_finalized(chain_id: String, url_new: String, namespace: String, secondary_id: Vec<u8>, network_id: u32, height: u64) -> Result<(NodeKitFilteredBlock, NodeKitFilteredBlock), Box<dyn std::error::Error>> {
         let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace, secondary_id).map_err(|e| e as Box<dyn std::error::Error>)?;
         //testing finalized and block height funcs below
-        //let end be current time unix epoch millis like u did in rust sdk.
-        let block_head = match cli.jsonrpc.get_block_headers_by_height(height, 0) {
+        let start = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64 * 1000;
+        // println!("Start: {:?}", start);
+        let end = start - 120 * 1000;
+        // println!("End: {:?}", end);
+        let block_head = match cli.jsonrpc.get_block_headers_by_height(height, end) {
             Ok(res) => res,
             Err(err) => return Err(err),
         };
-        println!("{:?}", block_head);
+        println!("block start: {:?}", block_head.get_blocks()[0]);
         //unwraps the last block from vec<blockinfo> so itll just be type blockinfo and can grab u64 from there
         //this case the l1_head
         let temp = match block_head.blocks.last() {
             Some(block) => block,
             None => return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "No blocks found"))),
         };
+        println!("temp: {:?}", temp);
         //gets l1 head of block or height u64 and passes that into fn finalized at.
         let param = temp.l1_head;
+        println!("height: {:?}", param);
         let finalize = match cli.get_finalized_at(param).await {
             Ok(finalize) => finalize, 
             Err(err) => return Err(err),
@@ -94,7 +100,6 @@ async fn test_extract_relevant_blobs() -> Result<(), Box<dyn std::error::Error>>
     let network_id = 0;
     let height = "?".to_string();
     let height = height.trim().parse::<u64>().expect("Failed to parse height");
-    //u64 is 0
     //new NodeKitClient instance.
     let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace, secondary_id).unwrap();
 
