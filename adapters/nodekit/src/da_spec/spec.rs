@@ -153,7 +153,7 @@ impl Display for NodeKitAddress {
 
 impl Address for NodeKitAddress {}
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SEQTxs(pub SEQTransaction);
 //same idea and approach as BlockHeaderTrait
 impl BlobReader for SEQTxs {

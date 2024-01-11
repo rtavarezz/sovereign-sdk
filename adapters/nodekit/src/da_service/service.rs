@@ -116,7 +116,7 @@ impl DaService for NodeKitClient {
             ).expect("Failed to create client"));
             // println!("{:?}", client);
             // Define the maximum wait time for block finalization(TODO alter to SEQ req)
-            let max_wait_time = Duration::from_secs(5000);
+            let max_wait_time = Duration::from_secs(30);
     
             // Initialize elapsed time counter for timeout(TODO alter to SEQ req)
             let mut elapsed_time = Duration::from_secs(0);
@@ -154,6 +154,7 @@ impl DaService for NodeKitClient {
                             // Fetch relevant transactions for the rollup namespace
                             let transactions = client.jsonrpc
                                 .get_block_transactions_by_namespace(height, self.rollup_namespace.clone());
+                            println!("extract namespace: {:?}", transactions);
                             let txs = Vec::new();  
                             if let Ok(transactions) = transactions {
                                 let _txs = transactions.txs;
@@ -227,6 +228,7 @@ impl DaService for NodeKitClient {
             }
             let mut txs = Vec::new(); 
             let transactions = self.jsonrpc.get_block_transactions_by_namespace(height, self.rollup_namespace.clone());
+            println!("extract namespace: {:?}", transactions);
             if let Ok(transactions) = transactions {
                 txs = transactions.txs;
             }
@@ -287,11 +289,12 @@ impl DaService for NodeKitClient {
         &self,
         block: &Self::FilteredBlock
     ) -> Vec<<Self::Spec as DaSpec>::BlobTransaction> {
-
+        // println!("block: {:?}", block);
         let mut relevant_txs = Vec::new();
-
         // Fetch all transactions for the block's height and rollup namespace
         let block_transactions = self.jsonrpc.get_block_transactions_by_namespace(block.header.block.l1_head, self.rollup_namespace.clone());
+        println!("seeing why its empty: {:?}", block.header.block.l1_head);
+        println!("extract rel blob: {:?}", block_transactions);
         if let Ok(block_transactions) = block_transactions {
             // After getting block's transactions, loop through them.
             for tx in &block_transactions.txs {
@@ -300,9 +303,11 @@ impl DaService for NodeKitClient {
                         continue;
                     }
                     let blob_transaction = SEQTxs(tx.clone());
+                    // println!("rel blob txs: {:?}", blob_transaction);
                     relevant_txs.push(blob_transaction);
             }
         }
+        // println!("rel txs blob: {:?}", relevant_txs);
         relevant_txs
     } 
     

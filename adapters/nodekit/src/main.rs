@@ -14,7 +14,7 @@ async fn main() {
     let namespace = "?".to_string();
     let secondary_id = "?".as_bytes().to_vec();
     let network_id = 321; //insert the value, this is an example
-    let height = 123; //insert the value, this is an example 
+    let height = 321; //insert the value, this is an example 
     
     //finalized still needs proofs as the goal of it is that once u get a block it cant be alterd unless u pay a high fee,
     //which is why proofs need to be made for that function to prove txs exist on that block.
@@ -30,10 +30,10 @@ async fn main() {
         Err(err) => println!("blob transaction sending error occurred: {:?}", err),
     }
     //TODO: test extract relevant blobs! need rollup namespace AND txs.
-    // match test_extract_relevant_blobs().await {
-    //     Ok(_) => println!("blobs extracted succeeded"),
-    //     Err(err) => println!("blobs extracting error occurred: {:?}", err),
-    // }
+    match test_extract_relevant_blobs().await {
+        Ok(_) => println!("blobs extracted succeeded"),
+        Err(err) => println!("blobs extracting error occurred: {:?}", err),
+    }
 
 }
 
@@ -109,20 +109,26 @@ async fn test_extract_relevant_blobs() -> Result<(), Box<dyn std::error::Error>>
     //converts string to Vec<u8>
     let secondary_id = "?".to_string().into_bytes();
     let network_id = 321;
-    let height = "?".to_string();
+    let height = "321".to_string();
     let height = height.trim().parse::<u64>().expect("Failed to parse height");
     //new NodeKitClient instance.
-    let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace, secondary_id).unwrap();
+    let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace.clone(), secondary_id).unwrap();
 
     // Need FilteredBlock instance to extract relevant blobs since that is passed through the func extract rel blob. 
     let block = match cli.get_block_at(height).await {
         Ok(res) => res,
         Err(err) => panic!("get_block_at failed: {:?}", err),
     };
-
+    // println!("block returns: {:?} {:?}", block.header.header.get_blocks()[0], block.transactions);
+    let test = match cli.jsonrpc.get_block_transactions_by_namespace(height, namespace) {
+        Ok(res) => res,
+        Err(err) => panic!("get_block_at failed: {:?}", err),
+    };
+    println!("namepsace rpc func returns: {:?}", test);
     //extract_relevant_blobs takes in block which is type Self::FilteredBlock which is correct by function definition
     //itll return a BlobTransaction which is SEQTxs(found in spec.rs under da_spec)
     let blobs = cli.extract_relevant_blobs(&block);
+    println!("blobs: {:?}", blobs);
 
     // Check the blobs.
     assert!(!blobs.is_empty(), "No relevant blobs found");
