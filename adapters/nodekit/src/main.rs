@@ -13,26 +13,32 @@ async fn main() {
     let url_new = "?".to_string();
     let namespace = "?".to_string();
     let secondary_id = "?".as_bytes().to_vec();
-    let network_id = 1337; //insert the value, this is an example
-    let height = 77; //insert the value, this is an example 
+    let network_id = 321; //insert the value, this is an example
+    let height = 123; //insert the value, this is an example 
     
-    match test_finalized(chain_id.trim().to_string(), url_new.trim().to_string(), namespace.trim().to_string(), secondary_id, network_id, height).await {
-        Ok(_) => println!("test_finalized succeeded"),
-        Err(err) => println!("test_finalized error occurred: {:?}", err),
+    //finalized still needs proofs as the goal of it is that once u get a block it cant be alterd unless u pay a high fee,
+    //which is why proofs need to be made for that function to prove txs exist on that block.
+    //get block simply gets whatever block at the height you inputted. rn both methods are the same.
+    //The difference between the 2 is that finalized includes proofs and cant be altered, described above.
+    match test_block_height(chain_id.trim().to_string(), url_new.trim().to_string(), namespace.trim().to_string(), secondary_id, network_id, height).await {
+        Ok(_) => println!("test_block_height succeeded"),
+        Err(err) => println!("test_block_height error occurred: {:?}", err),
     }
+
     match test_send_transaction().await {
-        Ok(_) => println!("transaction sending succeeded"),
-        Err(err) => println!("transaction sending error occurred: {:?}", err),
+        Ok(_) => println!("blob transaction sent!!"),
+        Err(err) => println!("blob transaction sending error occurred: {:?}", err),
     }
-    match test_extract_relevant_blobs().await {
-        Ok(_) => println!("blobs extracted succeeded"),
-        Err(err) => println!("blobs extracting error occurred: {:?}", err),
-    }
+    //TODO: test extract relevant blobs! need rollup namespace AND txs.
+    // match test_extract_relevant_blobs().await {
+    //     Ok(_) => println!("blobs extracted succeeded"),
+    //     Err(err) => println!("blobs extracting error occurred: {:?}", err),
+    // }
 
 }
 
 //testing get finalized at function and get block at function
-async fn test_finalized(chain_id: String, url_new: String, namespace: String, secondary_id: Vec<u8>, network_id: u32, height: u64) -> Result<(NodeKitFilteredBlock, NodeKitFilteredBlock), Box<dyn std::error::Error>> {
+async fn test_block_height(chain_id: String, url_new: String, namespace: String, secondary_id: Vec<u8>, network_id: u32, height: u64) -> Result<(NodeKitFilteredBlock, NodeKitFilteredBlock), Box<dyn std::error::Error>> {
         let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace, secondary_id).map_err(|e| e as Box<dyn std::error::Error>)?;
         //testing finalized and block height funcs below
         let start = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64 * 1000;
@@ -50,19 +56,24 @@ async fn test_finalized(chain_id: String, url_new: String, namespace: String, se
             Some(block) => block,
             None => return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "No blocks found"))),
         };
-        println!("temp: {:?}", temp);
+        println!("last block: {:?}", temp);
         //gets l1 head of block or height u64 and passes that into fn finalized at.
-        let param = temp.l1_head;
-        println!("height: {:?}", param);
-        let finalize = match cli.get_finalized_at(param).await {
+        //note: dont use L1 head as height, go to SEQ and get the height manually and input it. 
+        //My mistake was extracting l1 head from a block and using that as the height which is why it was failing.
+        // let param = temp.l1_head;
+        // println!("height: {:?}", param);
+        let finalize = match cli.get_finalized_at(height).await {
             Ok(finalize) => finalize, 
             Err(err) => return Err(err),
         };
         //tests get block at fn and uses same u64 height.
-        let get_height = match cli.get_block_at(param).await {
+        let get_height = match cli.get_block_at(height).await {
             Ok(get_height) => get_height, 
             Err(err) => return Err(err),
         };
+        println!("get_block_at fn test: {:?} {:?}", get_height.header.header.get_blocks()[0], get_height.transactions);
+        println!("get_finalized_at fn test: {:?} {:?}", finalize.header.header.get_blocks()[0], finalize.transactions);
+
         Ok((finalize, get_height))
 }
 
@@ -74,7 +85,7 @@ async fn test_send_transaction() -> Result<(), Box<dyn std::error::Error>> {
     let namespace = "?".to_string();
     //converts string to Vec<u8>
     let secondary_id = "?".to_string().into_bytes();
-    let network_id = 1337;
+    let network_id = 321;
     //blob is the 'pub data: Vec<u8>' in jsonrpc SubmitMsgTxArgs.
     //but send tx expects &[u8] so we use 'as_bytes()' fn for that
     //if we wanted string to Vec<u8>, do .into_bytes() like above
@@ -97,7 +108,7 @@ async fn test_extract_relevant_blobs() -> Result<(), Box<dyn std::error::Error>>
     let namespace = "?".to_string();
     //converts string to Vec<u8>
     let secondary_id = "?".to_string().into_bytes();
-    let network_id = 0;
+    let network_id = 321;
     let height = "?".to_string();
     let height = height.trim().parse::<u64>().expect("Failed to parse height");
     //new NodeKitClient instance.

@@ -116,22 +116,27 @@ impl DaService for NodeKitClient {
             ).expect("Failed to create client"));
             // println!("{:?}", client);
             // Define the maximum wait time for block finalization(TODO alter to SEQ req)
-            // let max_wait_time = Duration::from_secs(5000);
+            let max_wait_time = Duration::from_secs(5000);
     
             // Initialize elapsed time counter for timeout(TODO alter to SEQ req)
-            // let mut elapsed_time = Duration::from_secs(0);
+            let mut elapsed_time = Duration::from_secs(0);
             let client_clone = Arc::clone(&client);
             let client_ref = Arc::as_ref(&client_clone);
             // Loop until the desired block is finalized or timeout is reached
+            // let start = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64 * 1000;
+            // let end = start - 120 * 1000;
+            // println!("client ref obj {:?}", client_ref.jsonrpc);
+            // println!("test obj {:?}", client_ref.jsonrpc.get_block_headers_by_height(29, end ));
             loop {
                 // Construct arguments for fetching block headers
                 //Fetches all block headers starting from the requested height up to the chain's latest block(end: -1)
                 let start = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64 * 1000;
-                // println!("Start: {:?}", start);
+                // // println!("Start: {:?}", start);
                 let end = start - 120 * 1000;
-                // println!("End: {:?}", end);
+                // // println!("End: {:?}", end);
                 let args = GetBlockHeadersByHeightArgs {height, end};
-                // println!("{:?}", args);
+                // let temp = client_ref.jsonrpc.get_block_headers_by_height(args.height, args.end);
+                // println!("testing loop {:?}", client_ref.jsonrpc);
                 // println!("{:?}", client_ref);
                 //match allows us to handle different outcomes from an expression, in this case: client.get_block_headers_by_height() which is an async call.  
                 match client_ref.jsonrpc.get_block_headers_by_height(args.height, args.end) {
@@ -139,7 +144,7 @@ impl DaService for NodeKitClient {
                     // If above call is successful, then strong indication of finalized block
                     //and result is stored in block_headers_response.
                     Ok(block_headers_response) => {
-                        println!("{:?}", block_headers_response);
+                        // println!("{:?}", block_headers_response);
                         // Check if any headers are present, indicating a finalized block
                         if !block_headers_response.blocks.is_empty() {
                             // Extract the first header assuming it's the finalized block
@@ -169,16 +174,16 @@ impl DaService for NodeKitClient {
                             });
                         }
     
-                        // Check if elapsed time exceeds the maximum wait time
-                        // if elapsed_time >= max_wait_time {
-                        //     // Return an error indicating timeout
-                        //     return Err(anyhow::anyhow!("Timeout waiting for block finalization").into());
-                        // }
+                        //Check if elapsed time exceeds the maximum wait time
+                        if elapsed_time >= max_wait_time {
+                            // Return an error indicating timeout
+                            return Err(anyhow::anyhow!("Timeout waiting for block finalization").into());
+                        }
     
                         // Wait for a short duration before retrying
-                        // tokio::time::sleep(Duration::from_millis(500)).await;
-                        // Update elapsed time counter for adaptive timeout
-                        // elapsed_time += Duration::from_millis(500);
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                        //Update elapsed time counter for adaptive timeout
+                        elapsed_time += Duration::from_millis(500);
                     }
                     // Handle errors during block header fetching
                     Err(e) => {
