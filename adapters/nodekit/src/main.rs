@@ -49,7 +49,7 @@ async fn test_block_height(chain_id: String, url_new: String, namespace: String,
             Ok(res) => res,
             Err(err) => return Err(err),
         };
-        println!("block start: {:?}", block_head.get_blocks()[0]);
+        // println!("block start: {:?}", block_head.get_blocks()[0]);
         //unwraps the last block from vec<blockinfo> so itll just be type blockinfo and can grab u64 from there
         //this case the l1_head
         let temp = match block_head.blocks.last() {
@@ -109,7 +109,7 @@ async fn test_extract_relevant_blobs() -> Result<(), Box<dyn std::error::Error>>
     //converts string to Vec<u8>
     let secondary_id = "?".to_string().into_bytes();
     let network_id = 321;
-    let height = "321".to_string();
+    let height = "?".to_string();
     let height = height.trim().parse::<u64>().expect("Failed to parse height");
     //new NodeKitClient instance.
     let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace.clone(), secondary_id).unwrap();
@@ -119,7 +119,7 @@ async fn test_extract_relevant_blobs() -> Result<(), Box<dyn std::error::Error>>
         Ok(res) => res,
         Err(err) => panic!("get_block_at failed: {:?}", err),
     };
-    // println!("block returns: {:?} {:?}", block.header.header.get_blocks()[0], block.transactions);
+    println!("block returns: {:?} {:?}", block.header.header.get_blocks()[0], block.transactions);
     let test = match cli.jsonrpc.get_block_transactions_by_namespace(height, namespace) {
         Ok(res) => res,
         Err(err) => panic!("get_block_at failed: {:?}", err),

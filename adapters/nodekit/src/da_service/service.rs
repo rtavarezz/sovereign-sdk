@@ -292,7 +292,7 @@ impl DaService for NodeKitClient {
         // println!("block: {:?}", block);
         let mut relevant_txs = Vec::new();
         // Fetch all transactions for the block's height and rollup namespace
-        let block_transactions = self.jsonrpc.get_block_transactions_by_namespace(block.header.block.l1_head, self.rollup_namespace.clone());
+        let block_transactions = self.jsonrpc.get_block_transactions_by_namespace(1705019159, self.rollup_namespace.clone());
         println!("seeing why its empty: {:?}", block.header.block.l1_head);
         println!("extract rel blob: {:?}", block_transactions);
         if let Ok(block_transactions) = block_transactions {
