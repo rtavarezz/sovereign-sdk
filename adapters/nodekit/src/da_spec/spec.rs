@@ -40,7 +40,8 @@ impl PartialEq for NodeKitBlockInfo {
     fn eq(&self, other: &Self) -> bool {
         self.block.block_id == other.block.block_id &&
         self.block.timestamp == other.block.timestamp &&
-        self.block.l1_head == other.block.l1_head
+        self.block.l1_head == other.block.l1_head &&
+        self.block.height == other.block.height
     }
 }
 
@@ -100,8 +101,9 @@ impl BlockHeader for NodeKitBlockInfo {
     }
 
     fn height(&self) -> u64 {
-        self.block.l1_head
+        self.block.height
     }
+    
     fn time(&self) -> Time {
         let millis = (self.block.timestamp % 1000) as u32;
         let nanos = millis * 1_000_000;

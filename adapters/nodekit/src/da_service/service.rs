@@ -18,9 +18,11 @@ use async_trait::async_trait;
 use sha2::{Sha256, Digest};
 use ::serde::{Serialize, Deserialize};
 use std::time::{SystemTime, UNIX_EPOCH};
+use anyhow::Error;
 
 #[derive(Debug)]
 pub struct NodeKitClient {
+    //same as chain id
     pub rollup_namespace: String,
     pub jsonrpc: JSONRPCClient,
     pub uri: String,
@@ -91,7 +93,7 @@ impl DaService for NodeKitClient {
 
     type FilteredBlock = NodeKitFilteredBlock;
 
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = anyhow::Error;
 
     // Make an RPC call to the node to get the finalized block at the given height, if one exists.
     // If no such block exists, block until one does.
@@ -102,7 +104,6 @@ impl DaService for NodeKitClient {
     ) -> Pin<Box<dyn Future<Output = Result<Self::FilteredBlock, Self::Error>> + Send + 'async_trait>>
        where Self: 'async_trait,
              'life0: 'async_trait {
-
         // Create a single `Arc` client instance for efficient reuse
         //Arc shares the RPC client connection between functions, avoiding duplicate connections 
         //and network overload that could slow down the server.
@@ -114,83 +115,54 @@ impl DaService for NodeKitClient {
                 self.rollup_namespace.clone(),
                 self.secondary_chain_id.clone(),
             ).expect("Failed to create client"));
-            // println!("{:?}", client);
-            // Define the maximum wait time for block finalization(TODO alter to SEQ req)
-            let max_wait_time = Duration::from_secs(30);
-    
-            // Initialize elapsed time counter for timeout(TODO alter to SEQ req)
-            let mut elapsed_time = Duration::from_secs(0);
             let client_clone = Arc::clone(&client);
             let client_ref = Arc::as_ref(&client_clone);
-            // Loop until the desired block is finalized or timeout is reached
-            // let start = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64 * 1000;
-            // let end = start - 120 * 1000;
-            // println!("client ref obj {:?}", client_ref.jsonrpc);
-            // println!("test obj {:?}", client_ref.jsonrpc.get_block_headers_by_height(29, end ));
-            loop {
-                // Construct arguments for fetching block headers
-                //Fetches all block headers starting from the requested height up to the chain's latest block(end: -1)
-                let start = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64 * 1000;
-                // // println!("Start: {:?}", start);
-                let end = start - 120 * 1000;
-                // // println!("End: {:?}", end);
-                let args = GetBlockHeadersByHeightArgs {height, end};
-                // let temp = client_ref.jsonrpc.get_block_headers_by_height(args.height, args.end);
-                // println!("testing loop {:?}", client_ref.jsonrpc);
-                // println!("{:?}", client_ref);
-                //match allows us to handle different outcomes from an expression, in this case: client.get_block_headers_by_height() which is an async call.  
-                match client_ref.jsonrpc.get_block_headers_by_height(args.height, args.end) {
-                    //variable  below created for outcomes of match
-                    // If above call is successful, then strong indication of finalized block
-                    //and result is stored in block_headers_response.
-                    Ok(block_headers_response) => {
-                        // println!("{:?}", block_headers_response);
-                        // Check if any headers are present, indicating a finalized block
-                        if !block_headers_response.blocks.is_empty() {
-                            // Extract the first header assuming it's the finalized block
-                            let finalized_block = block_headers_response.blocks[0].clone();
-                            // get hash of block which is used in proof(tbd)
-                            let _block_hash = finalized_block.block_id.clone();
-                            // Fetch relevant transactions for the rollup namespace
-                            let transactions = client.jsonrpc
-                                .get_block_transactions_by_namespace(height, self.rollup_namespace.clone());
-                            println!("extract namespace: {:?}", transactions);
-                            let txs = Vec::new();  
-                            if let Ok(transactions) = transactions {
-                                let _txs = transactions.txs;
-                            }
-                            let block_info = NodeKitBlockInfo {
-                                block: finalized_block,
-                                header: block_headers_response,
-
-                            };
-                            //TODO: verify that a transaction is included in a block. depends on customers needs if they want this.
-                            // let inclusion_proof = client.get_inclusion_multiproof(block_hash).await?;
-    
-                            // Return a complete `FilteredBlock` with all relevant information
-                            return Ok(Self::FilteredBlock {
-                                header: block_info,
-                                transactions: txs,
-                                // inclusion_proof,
-                            });
+            // Construct arguments for fetching block headers
+            //Fetches all block headers starting from the requested height up to the time user made request.
+            let start = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64 * 1000;
+            let end = start - 120 * 1000;
+            let args = GetBlockHeadersByHeightArgs {height, end};
+            //match allows us to handle different outcomes from an expression
+            match client_ref.jsonrpc.get_block_headers_by_height(args.height, args.end) {
+                //variable  below created for outcomes of match
+                // If above call is successful, then strong indication of finalized block
+                //and result is stored in block_headers_response.
+                Ok(block_headers_response) => {
+                    // println!("{:?}", block_headers_response);
+                    // Check if any headers are present, indicating a finalized block
+                    if !block_headers_response.blocks.is_empty() {
+                        // Extract the first header assuming it's the finalized block
+                        let finalized_block = block_headers_response.blocks[0].clone();
+                        // get hash of block which is used in proof(tbd)
+                        // let _block_hash = finalized_block.block_id.clone();
+                        // Fetch relevant transactions for the rollup namespace
+                        let transactions = client.jsonrpc.get_block_transactions_by_namespace(height, self.rollup_namespace.clone());
+                        println!("extract namespace: {:?}", transactions);
+                        let txs = Vec::new();  
+                        if let Ok(transactions) = transactions {
+                            let _txs = transactions.txs;
                         }
-    
-                        //Check if elapsed time exceeds the maximum wait time
-                        if elapsed_time >= max_wait_time {
-                            // Return an error indicating timeout
-                            return Err(anyhow::anyhow!("Timeout waiting for block finalization").into());
-                        }
-    
-                        // Wait for a short duration before retrying
-                        tokio::time::sleep(Duration::from_millis(500)).await;
-                        //Update elapsed time counter for adaptive timeout
-                        elapsed_time += Duration::from_millis(500);
+                        let block_info = NodeKitBlockInfo {
+                            block: finalized_block,
+                            header: block_headers_response,
+                        };
+                        //TODO: verify that a transaction is included in a block
+                        //let inclusion_proof = client.get_inclusion_multiproof(block_hash).await?;
+                        //returns `FilteredBlock` with all relevant info
+                        return Ok(Self::FilteredBlock {
+                            header: block_info,
+                            transactions: txs,
+                            //todo: inclusion_proof,
+                        });
                     }
-                    // Handle errors during block header fetching
-                    Err(e) => {
-                        // Return an error with details
-                        return Err(anyhow::anyhow!("{} {}", "Error fetching block headers: {}".to_owned() + &height.to_string(), e).into());
+                    //if blocks field is empty; no blocks at height.
+                    else {
+                        return Err(anyhow::anyhow!("Error: no blocks found at specified height {}", height));
                     }
+                }
+                //rpc call failed
+                Err(_e) => {
+                    return Err(anyhow::anyhow!("Error fetching block headers with rpc function. Double check the height inputted {}", height));
                 }
             }
         })
@@ -204,45 +176,11 @@ impl DaService for NodeKitClient {
     ) -> Pin<Box<dyn Future<Output = Result<Self::FilteredBlock, Self::Error>> + Send + 'async_trait>>
        where Self: 'async_trait,
              'life0: 'async_trait {
-
+        //calls finalized at function with new height param since finalized is more secure
+        //and accomplishes the same.
         Box::pin(async move {
-            let client = Arc::new(NodeKitClient::new(
-                &self.uri.clone(),
-                self.jsonrpc.network_id.clone(),
-                self.jsonrpc.chain_id.clone(),
-                self.rollup_namespace.clone(),
-                self.secondary_chain_id.clone(),
-            ).expect("Failed to create client"));
-
-            let temp = client.clone();
-            
-            //uses get_finalized_at fn since it ensures block you get is stable and won't be altered/removed.
-            let finalized_block = temp.get_finalized_at(height);
-            let mut finalized = None;
-            let final_result = finalized_block.await;
-            if let Ok(res) = final_result {
-                // since we have a finalized block, use its hash to fetch the transactions
-                let _block_hash = res.header.block.block_id.clone();
-                finalized = Some(res);
-
-            }
-            let mut txs = Vec::new(); 
-            let transactions = self.jsonrpc.get_block_transactions_by_namespace(height, self.rollup_namespace.clone());
-            println!("extract namespace: {:?}", transactions);
-            if let Ok(transactions) = transactions {
-                txs = transactions.txs;
-            }
-
-            if let Some(finalized) = finalized {
-                // Combine the header and transactions into a `FilteredBlock`
-                let filtered_block = Self::FilteredBlock {
-                    header: finalized.header,
-                    transactions: txs,
-                };
-                Ok(filtered_block)
-            } else {
-                return Err(anyhow::anyhow!("{}", "block at height: ".to_owned() + &height.to_string() + ", failed").into());
-            }
+            let filtered_block = self.get_finalized_at(height).await?;
+            Ok(filtered_block)
         })
     }
 
@@ -292,8 +230,8 @@ impl DaService for NodeKitClient {
         // println!("block: {:?}", block);
         let mut relevant_txs = Vec::new();
         // Fetch all transactions for the block's height and rollup namespace
-        let block_transactions = self.jsonrpc.get_block_transactions_by_namespace(1705019159, self.rollup_namespace.clone());
-        println!("seeing why its empty: {:?}", block.header.block.l1_head);
+        let block_transactions = self.jsonrpc.get_block_transactions_by_namespace(block.header.block.height, self.rollup_namespace.clone());
+        println!("seeing why its empty: {:?}", block.header.block.height);
         println!("extract rel blob: {:?}", block_transactions);
         if let Ok(block_transactions) = block_transactions {
             // After getting block's transactions, loop through them.

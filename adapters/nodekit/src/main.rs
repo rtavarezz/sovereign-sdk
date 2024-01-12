@@ -18,13 +18,11 @@ async fn main() {
     
     //finalized still needs proofs as the goal of it is that once u get a block it cant be alterd unless u pay a high fee,
     //which is why proofs need to be made for that function to prove txs exist on that block.
-    //get block simply gets whatever block at the height you inputted. rn both methods are the same.
-    //The difference between the 2 is that finalized includes proofs and cant be altered, described above.
+    //get block simply gets whatever block at the height you inputted. 
     match test_block_height(chain_id.trim().to_string(), url_new.trim().to_string(), namespace.trim().to_string(), secondary_id, network_id, height).await {
         Ok(_) => println!("test_block_height succeeded"),
         Err(err) => println!("test_block_height error occurred: {:?}", err),
     }
-
     match test_send_transaction().await {
         Ok(_) => println!("blob transaction sent!!"),
         Err(err) => println!("blob transaction sending error occurred: {:?}", err),
@@ -64,15 +62,17 @@ async fn test_block_height(chain_id: String, url_new: String, namespace: String,
         // println!("height: {:?}", param);
         let finalize = match cli.get_finalized_at(height).await {
             Ok(finalize) => finalize, 
-            Err(err) => return Err(err),
+            Err(err) => return Err(err.into()),
         };
         //tests get block at fn and uses same u64 height.
         let get_height = match cli.get_block_at(height).await {
             Ok(get_height) => get_height, 
-            Err(err) => return Err(err),
+            Err(err) => return Err(err.into()),
         };
-        println!("get_block_at fn test: {:?} {:?}", get_height.header.header.get_blocks()[0], get_height.transactions);
-        println!("get_finalized_at fn test: {:?} {:?}", finalize.header.header.get_blocks()[0], finalize.transactions);
+        // println!("get_block_at fn test: {:?} {:?}", get_height.header.header.get_blocks()[0], get_height.transactions);
+        // println!("get_finalized_at fn test: {:?} {:?}", finalize.header.header.get_blocks()[0], finalize.transactions);
+        println!("get_finalize_at fn test: {:?}", finalize);
+        println!("get_block_at fn test: {:?}", get_height);
 
         Ok((finalize, get_height))
 }
@@ -107,9 +107,9 @@ async fn test_extract_relevant_blobs() -> Result<(), Box<dyn std::error::Error>>
     let url_new = "?".to_string();
     let namespace = "?".to_string();
     //converts string to Vec<u8>
-    let secondary_id = "?".to_string().into_bytes();
-    let network_id = 321;
-    let height = "?".to_string();
+    let secondary_id = "?".as_bytes().to_vec();
+    let network_id = 1337;
+    let height = "321".to_string();
     let height = height.trim().parse::<u64>().expect("Failed to parse height");
     //new NodeKitClient instance.
     let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace.clone(), secondary_id).unwrap();
@@ -119,11 +119,14 @@ async fn test_extract_relevant_blobs() -> Result<(), Box<dyn std::error::Error>>
         Ok(res) => res,
         Err(err) => panic!("get_block_at failed: {:?}", err),
     };
-    println!("block returns: {:?} {:?}", block.header.header.get_blocks()[0], block.transactions);
-    let test = match cli.jsonrpc.get_block_transactions_by_namespace(height, namespace) {
+    let hex_namespace = hex::encode(namespace);
+
+    // println!("block returns: {:?} {:?}", block.header.header.get_blocks()[0], block.transactions);
+    let test = match cli.jsonrpc.get_block_transactions_by_namespace(height, hex_namespace) {
         Ok(res) => res,
         Err(err) => panic!("get_block_at failed: {:?}", err),
     };
+    
     println!("namepsace rpc func returns: {:?}", test);
     //extract_relevant_blobs takes in block which is type Self::FilteredBlock which is correct by function definition
     //itll return a BlobTransaction which is SEQTxs(found in spec.rs under da_spec)
