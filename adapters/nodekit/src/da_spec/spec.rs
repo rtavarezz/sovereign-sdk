@@ -103,7 +103,7 @@ impl BlockHeader for NodeKitBlockInfo {
     fn height(&self) -> u64 {
         self.block.height
     }
-    
+
     fn time(&self) -> Time {
         let millis = (self.block.timestamp % 1000) as u32;
         let nanos = millis * 1_000_000;

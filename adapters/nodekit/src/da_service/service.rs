@@ -42,7 +42,8 @@ impl PartialEq for NodeKitFilteredBlock {
     fn eq(&self, other: &Self) -> bool {
         self.header.block.block_id == other.header.block.block_id &&
         self.header.block.timestamp == other.header.block.timestamp &&
-        self.header.block.l1_head == other.header.block.l1_head
+        self.header.block.l1_head == other.header.block.l1_head &&
+        self.header.block.height == other.header.block.height
     }
 }
 impl SlotData for NodeKitFilteredBlock {
@@ -136,11 +137,13 @@ impl DaService for NodeKitClient {
                         // get hash of block which is used in proof(tbd)
                         // let _block_hash = finalized_block.block_id.clone();
                         // Fetch relevant transactions for the rollup namespace
-                        let transactions = client.jsonrpc.get_block_transactions_by_namespace(height, self.rollup_namespace.clone());
-                        println!("extract namespace: {:?}", transactions);
-                        let txs = Vec::new();  
+                        let bytes = self.rollup_namespace.as_bytes();
+                        let hex_namespace = hex::encode(bytes); 
+                        let transactions = client.jsonrpc.get_block_transactions_by_namespace(height, hex_namespace);
+                        println!("extract txs: {:?}", transactions);
+                        let tx = Vec::new();  
                         if let Ok(transactions) = transactions {
-                            let _txs = transactions.txs;
+                            let tx = transactions.txs;
                         }
                         let block_info = NodeKitBlockInfo {
                             block: finalized_block,
@@ -151,7 +154,7 @@ impl DaService for NodeKitClient {
                         //returns `FilteredBlock` with all relevant info
                         return Ok(Self::FilteredBlock {
                             header: block_info,
-                            transactions: txs,
+                            transactions: tx,
                             //todo: inclusion_proof,
                         });
                     }
@@ -230,26 +233,29 @@ impl DaService for NodeKitClient {
         // println!("block: {:?}", block);
         let mut relevant_txs = Vec::new();
         // Fetch all transactions for the block's height and rollup namespace
-        let block_transactions = self.jsonrpc.get_block_transactions_by_namespace(block.header.block.height, self.rollup_namespace.clone());
+        let bytes = self.rollup_namespace.as_bytes();
+        let hex_namespace = hex::encode(bytes);
+        let block_transactions = self.jsonrpc.get_block_transactions_by_namespace(block.header.block.height, hex_namespace.clone());
+        println!("hex namespace in func: {:?}", hex_namespace);
         println!("seeing why its empty: {:?}", block.header.block.height);
         println!("extract rel blob: {:?}", block_transactions);
-        if let Ok(block_transactions) = block_transactions {
-            // After getting block's transactions, loop through them.
-            for tx in &block_transactions.txs {
-                // Skip transactions outside the rollup namespace
+        match block_transactions {
+            Ok(block_transactions) => {
+                for tx in &block_transactions.txs {
                     if tx.namespace != self.rollup_namespace {
                         continue;
                     }
                     let blob_transaction = SEQTxs(tx.clone());
-                    // println!("rel blob txs: {:?}", blob_transaction);
                     relevant_txs.push(blob_transaction);
+                }
+            },
+            Err(e) => {
+                eprintln!("Error: {:?}", e);
             }
         }
-        // println!("rel txs blob: {:?}", relevant_txs);
         relevant_txs
-    } 
+    }
     
-
     // Extract the list blob transactions relevant to a particular rollup from a block, along with inclusion and
     // completeness proofs for that set of transactions. The output of this method will be passed to the verifier.
     fn extract_relevant_blobs_with_proof<'life0, 'life1, 'async_trait>(

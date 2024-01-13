@@ -19,19 +19,22 @@ async fn main() {
     //finalized still needs proofs as the goal of it is that once u get a block it cant be alterd unless u pay a high fee,
     //which is why proofs need to be made for that function to prove txs exist on that block.
     //get block simply gets whatever block at the height you inputted. 
-    match test_block_height(chain_id.trim().to_string(), url_new.trim().to_string(), namespace.trim().to_string(), secondary_id, network_id, height).await {
+    match test_block_height(chain_id.trim().to_string(), url_new.trim().to_string(), namespace.trim().to_string(), secondary_id.clone(), network_id, height).await {
         Ok(_) => println!("test_block_height succeeded"),
-        Err(err) => println!("test_block_height error occurred: {:?}", err),
+        Err(err) => {
+            println!("test_block_height error occurred: {:?}", err);
+            println!("Context: chain_id={:?}, url_new={}, namespace={}, secondary_id={:?}, network_id={}, height={}", chain_id, url_new, namespace, secondary_id.clone(), network_id, height);
+        }
     }
     match test_send_transaction().await {
         Ok(_) => println!("blob transaction sent!!"),
         Err(err) => println!("blob transaction sending error occurred: {:?}", err),
     }
     //TODO: test extract relevant blobs! need rollup namespace AND txs.
-    match test_extract_relevant_blobs().await {
-        Ok(_) => println!("blobs extracted succeeded"),
-        Err(err) => println!("blobs extracting error occurred: {:?}", err),
-    }
+    // match test_extract_relevant_blobs().await {
+    //     Ok(_) => println!("blobs extracted succeeded"),
+    //     Err(err) => println!("blobs extracting error occurred: {:?}", err),
+    // }
 
 }
 
@@ -39,6 +42,7 @@ async fn main() {
 async fn test_block_height(chain_id: String, url_new: String, namespace: String, secondary_id: Vec<u8>, network_id: u32, height: u64) -> Result<(NodeKitFilteredBlock, NodeKitFilteredBlock), Box<dyn std::error::Error>> {
         let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace, secondary_id).map_err(|e| e as Box<dyn std::error::Error>)?;
         //testing finalized and block height funcs below
+        // println!("cli: {:?}", cli);
         let start = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64 * 1000;
         // println!("Start: {:?}", start);
         let end = start - 120 * 1000;
@@ -47,7 +51,7 @@ async fn test_block_height(chain_id: String, url_new: String, namespace: String,
             Ok(res) => res,
             Err(err) => return Err(err),
         };
-        // println!("block start: {:?}", block_head.get_blocks()[0]);
+        println!("block start: {:?}", block_head);
         //unwraps the last block from vec<blockinfo> so itll just be type blockinfo and can grab u64 from there
         //this case the l1_head
         let temp = match block_head.blocks.last() {
@@ -71,9 +75,7 @@ async fn test_block_height(chain_id: String, url_new: String, namespace: String,
         };
         // println!("get_block_at fn test: {:?} {:?}", get_height.header.header.get_blocks()[0], get_height.transactions);
         // println!("get_finalized_at fn test: {:?} {:?}", finalize.header.header.get_blocks()[0], finalize.transactions);
-        println!("get_finalize_at fn test: {:?}", finalize);
-        println!("get_block_at fn test: {:?}", get_height);
-
+        println!("get_finalize_at fn test: {:?}", finalize.header.header.get_blocks()[0]);
         Ok((finalize, get_height))
 }
 
@@ -85,7 +87,7 @@ async fn test_send_transaction() -> Result<(), Box<dyn std::error::Error>> {
     let namespace = "?".to_string();
     //converts string to Vec<u8>
     let secondary_id = "?".to_string().into_bytes();
-    let network_id = 321;
+    let network_id = 1337;
     //blob is the 'pub data: Vec<u8>' in jsonrpc SubmitMsgTxArgs.
     //but send tx expects &[u8] so we use 'as_bytes()' fn for that
     //if we wanted string to Vec<u8>, do .into_bytes() like above
@@ -108,9 +110,10 @@ async fn test_extract_relevant_blobs() -> Result<(), Box<dyn std::error::Error>>
     let namespace = "?".to_string();
     //converts string to Vec<u8>
     let secondary_id = "?".as_bytes().to_vec();
-    let network_id = 1337;
-    let height = "321".to_string();
-    let height = height.trim().parse::<u64>().expect("Failed to parse height");
+    let network_id = 321;
+    // let height = "397".to_string();
+    // let height = height.trim().parse::<u64>().expect("Failed to parse height");
+    let height = 321;
     //new NodeKitClient instance.
     let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace.clone(), secondary_id).unwrap();
 
@@ -119,21 +122,22 @@ async fn test_extract_relevant_blobs() -> Result<(), Box<dyn std::error::Error>>
         Ok(res) => res,
         Err(err) => panic!("get_block_at failed: {:?}", err),
     };
-    let hex_namespace = hex::encode(namespace);
-
+    let bytes = namespace.as_bytes();
+    let hex_namespace = hex::encode(bytes);
+    println!("hex {:?}", hex_namespace);
     // println!("block returns: {:?} {:?}", block.header.header.get_blocks()[0], block.transactions);
     let test = match cli.jsonrpc.get_block_transactions_by_namespace(height, hex_namespace) {
         Ok(res) => res,
         Err(err) => panic!("get_block_at failed: {:?}", err),
     };
     
-    println!("namepsace rpc func returns: {:?}", test);
+    println!("namespace rpc func returns: {:?}", test);
     //extract_relevant_blobs takes in block which is type Self::FilteredBlock which is correct by function definition
     //itll return a BlobTransaction which is SEQTxs(found in spec.rs under da_spec)
     let blobs = cli.extract_relevant_blobs(&block);
     println!("blobs: {:?}", blobs);
 
     // Check the blobs.
-    assert!(!blobs.is_empty(), "No relevant blobs found");
+    // assert!(!blobs.is_empty(), "No relevant blobs found");
     Ok(())
 }

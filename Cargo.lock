@@ -4346,7 +4346,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bad00257d07be169d870ab665980b06cdb366d792ad690bf2e76876dc503455"
 dependencies = [
  "hermit-abi 0.3.3",
- "rustix 0.38.29",
+ "rustix 0.38.30",
  "windows-sys 0.52.0",
 ]
 
@@ -5093,7 +5093,7 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2cffa4ad52c6f791f4f8b15f0c05f9824b2ced1160e88cc393d64fff9a8ac64"
 dependencies = [
- "rustix 0.38.29",
+ "rustix 0.38.30",
 ]
 
 [[package]]
@@ -5346,7 +5346,7 @@ dependencies = [
 [[package]]
 name = "nodekit_seq_sdk"
 version = "0.1.5"
-source = "git+https://github.com/AnomalyFi/rust-seq-rpc#e8ae7a2fe82acdfafb01430f56944420fed04591"
+source = "git+https://github.com/AnomalyFi/rust-seq-rpc#0bdf31e628ddff6f039a9a978edca40a7a8bf3f1"
 dependencies = [
  "async-trait",
  "bytes",
@@ -7658,9 +7658,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.38.29"
+version = "0.38.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a1a81a2478639a14e68937903356dbac62cf52171148924f754bb8a8cd7a96c"
+checksum = "322394588aaf33c24007e8bb3238ee3e4c5c09c084ab32bc73890b99ff326bca"
 dependencies = [
  "bitflags 2.4.1",
  "errno",
@@ -10351,7 +10351,7 @@ dependencies = [
  "cfg-if",
  "fastrand 2.0.1",
  "redox_syscall 0.4.1",
- "rustix 0.38.29",
+ "rustix 0.38.30",
  "windows-sys 0.52.0",
 ]
 
@@ -11659,7 +11659,7 @@ dependencies = [
  "either",
  "home",
  "once_cell",
- "rustix 0.38.29",
+ "rustix 0.38.30",
 ]
 
 [[package]]
