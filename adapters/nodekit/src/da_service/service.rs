@@ -140,7 +140,7 @@ impl DaService for NodeKitClient {
                         let bytes = self.rollup_namespace.as_bytes();
                         let hex_namespace = hex::encode(bytes); 
                         let transactions = client.jsonrpc.get_block_transactions_by_namespace(height, hex_namespace);
-                        println!("extract txs: {:?}", transactions);
+                        // println!("extract txs: {:?}", transactions);
                         let tx = Vec::new();  
                         if let Ok(transactions) = transactions {
                             let tx = transactions.txs;
@@ -236,13 +236,11 @@ impl DaService for NodeKitClient {
         let bytes = self.rollup_namespace.as_bytes();
         let hex_namespace = hex::encode(bytes);
         let block_transactions = self.jsonrpc.get_block_transactions_by_namespace(block.header.block.height, hex_namespace.clone());
-        println!("hex namespace in func: {:?}", hex_namespace);
-        println!("seeing why its empty: {:?}", block.header.block.height);
-        println!("extract rel blob: {:?}", block_transactions);
+        // println!("extract rel blob: {:?}", block_transactions);
         match block_transactions {
             Ok(block_transactions) => {
                 for tx in &block_transactions.txs {
-                    if tx.namespace != self.rollup_namespace {
+                    if tx.namespace != hex_namespace {
                         continue;
                     }
                     let blob_transaction = SEQTxs(tx.clone());

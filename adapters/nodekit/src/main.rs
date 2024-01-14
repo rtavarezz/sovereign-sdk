@@ -26,15 +26,15 @@ async fn main() {
             println!("Context: chain_id={:?}, url_new={}, namespace={}, secondary_id={:?}, network_id={}, height={}", chain_id, url_new, namespace, secondary_id.clone(), network_id, height);
         }
     }
-    match test_send_transaction().await {
-        Ok(_) => println!("blob transaction sent!!"),
-        Err(err) => println!("blob transaction sending error occurred: {:?}", err),
-    }
-    //TODO: test extract relevant blobs! need rollup namespace AND txs.
-    // match test_extract_relevant_blobs().await {
-    //     Ok(_) => println!("blobs extracted succeeded"),
-    //     Err(err) => println!("blobs extracting error occurred: {:?}", err),
+    // match test_send_transaction().await {
+    //     Ok(_) => println!("blob transaction sent!!"),
+    //     Err(err) => println!("blob transaction sending error occurred: {:?}", err),
     // }
+    // TODO: test extract relevant blobs! need rollup namespace AND txs.
+    match test_extract_relevant_blobs().await {
+        Ok(_) => println!("blobs extracted succeeded"),
+        Err(err) => println!("blobs extracting error occurred: {:?}", err),
+    }
 
 }
 
@@ -51,14 +51,14 @@ async fn test_block_height(chain_id: String, url_new: String, namespace: String,
             Ok(res) => res,
             Err(err) => return Err(err),
         };
-        println!("block start: {:?}", block_head);
+        // println!("block start: {:?}", block_head);
         //unwraps the last block from vec<blockinfo> so itll just be type blockinfo and can grab u64 from there
         //this case the l1_head
         let temp = match block_head.blocks.last() {
             Some(block) => block,
             None => return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "No blocks found"))),
         };
-        println!("last block: {:?}", temp);
+        // println!("last block: {:?}", temp);
         //gets l1 head of block or height u64 and passes that into fn finalized at.
         //note: dont use L1 head as height, go to SEQ and get the height manually and input it. 
         //My mistake was extracting l1 head from a block and using that as the height which is why it was failing.
@@ -76,6 +76,8 @@ async fn test_block_height(chain_id: String, url_new: String, namespace: String,
         // println!("get_block_at fn test: {:?} {:?}", get_height.header.header.get_blocks()[0], get_height.transactions);
         // println!("get_finalized_at fn test: {:?} {:?}", finalize.header.header.get_blocks()[0], finalize.transactions);
         println!("get_finalize_at fn test: {:?}", finalize.header.header.get_blocks()[0]);
+        println!("get_block_at fn test: {:?}", get_height.header.header.get_blocks()[0]);
+
         Ok((finalize, get_height))
 }
 
@@ -87,7 +89,7 @@ async fn test_send_transaction() -> Result<(), Box<dyn std::error::Error>> {
     let namespace = "?".to_string();
     //converts string to Vec<u8>
     let secondary_id = "?".to_string().into_bytes();
-    let network_id = 1337;
+    let network_id = 321;
     //blob is the 'pub data: Vec<u8>' in jsonrpc SubmitMsgTxArgs.
     //but send tx expects &[u8] so we use 'as_bytes()' fn for that
     //if we wanted string to Vec<u8>, do .into_bytes() like above
@@ -96,7 +98,7 @@ async fn test_send_transaction() -> Result<(), Box<dyn std::error::Error>> {
     let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace, secondary_id).unwrap();
 
     let result = cli.send_transaction(blob).await;
-    println!("{:?}", result);
+    // println!("{:?}", result);
 
     assert!(result.is_ok(), "send_transaction failed: {:?}", result.err());
     Ok(())
@@ -111,9 +113,8 @@ async fn test_extract_relevant_blobs() -> Result<(), Box<dyn std::error::Error>>
     //converts string to Vec<u8>
     let secondary_id = "?".as_bytes().to_vec();
     let network_id = 321;
-    // let height = "397".to_string();
-    // let height = height.trim().parse::<u64>().expect("Failed to parse height");
-    let height = 321;
+    let height = "?".to_string();
+    let height = height.trim().parse::<u64>().expect("Failed to parse height");
     //new NodeKitClient instance.
     let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace.clone(), secondary_id).unwrap();
 
@@ -122,22 +123,22 @@ async fn test_extract_relevant_blobs() -> Result<(), Box<dyn std::error::Error>>
         Ok(res) => res,
         Err(err) => panic!("get_block_at failed: {:?}", err),
     };
-    let bytes = namespace.as_bytes();
-    let hex_namespace = hex::encode(bytes);
-    println!("hex {:?}", hex_namespace);
+    // let bytes = namespace.as_bytes();
+    let hex_namespace = hex::encode(namespace);
+    // println!("hex {:?}", hex_namespace);
     // println!("block returns: {:?} {:?}", block.header.header.get_blocks()[0], block.transactions);
     let test = match cli.jsonrpc.get_block_transactions_by_namespace(height, hex_namespace) {
         Ok(res) => res,
         Err(err) => panic!("get_block_at failed: {:?}", err),
     };
     
-    println!("namespace rpc func returns: {:?}", test);
+    // println!("namespace rpc func returns: {:?}", test);
     //extract_relevant_blobs takes in block which is type Self::FilteredBlock which is correct by function definition
     //itll return a BlobTransaction which is SEQTxs(found in spec.rs under da_spec)
     let blobs = cli.extract_relevant_blobs(&block);
     println!("blobs: {:?}", blobs);
 
     // Check the blobs.
-    // assert!(!blobs.is_empty(), "No relevant blobs found");
+    assert!(!blobs.is_empty(), "No relevant blobs found");
     Ok(())
 }
