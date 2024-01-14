@@ -81,19 +81,10 @@ impl BlockHeader for NodeKitBlockInfo {
     type Hash = NodeKitHash;
 
     fn prev_hash(&self) -> Self::Hash {
-        //uses bs58 lib and decode fn takes in &self..etc, decode fn returns DecodeBuilder.
-        //fn into_vec() decodes the Base58 string into a byte vector (Vec<u8>).
-        //if decode() is a success, it'll return a result(Vec<u8>).
-        //With the Result<Vec<u8>>, itll call unwrap on the Result.
-        //if Result is Ok() meaning it passed, then itll return the vector.
-        //if Result fails, itll panic and program crashes, todo, (might need to fix will revisit).
         let decoded = bs58::decode(&self.header.prev.block_id).into_vec().unwrap();
-        //fn try_into() tries to convert the vector above into array of 32 bytes.
-        //if decoded == 32 bytes, itll return Ok([u8; 32]), otherwise itll fail
-        //unwrap_. is called on the result from step above being 32 bytes.
-        //if result is ok then itll return the array 32 bytes, otherwise fails and returns array of zeros.
         NodeKitHash(decoded.try_into().unwrap_or_else(|_| [0; 32]))
     }
+
     //same as prev_hash() but with curr block instead of prev.
     fn hash(&self) -> Self::Hash {
         let decoded = bs58::decode(&self.block.block_id).into_vec().unwrap();
@@ -157,6 +148,7 @@ impl Address for NodeKitAddress {}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SEQTxs(pub SEQTransaction);
+
 //same idea and approach as BlockHeaderTrait
 impl BlobReader for SEQTxs {
     type Address = NodeKitAddress;
@@ -182,7 +174,7 @@ pub struct NodeKitValidity {
     pub past: [u8; 32],
     pub block: [u8; 32],
 }
-//TODO: to be implemented in next version
+//TODO: to be implemented in version 1
 impl Validity for NodeKitValidity {
     type Error = Error;
 

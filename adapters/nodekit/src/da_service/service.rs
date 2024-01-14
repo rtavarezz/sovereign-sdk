@@ -1,28 +1,28 @@
 use core::{future::Future, pin::Pin};
 use sov_rollup_interface::services::da::DaService;
 use sov_rollup_interface::services::da::SlotData;
-use crate::da_spec::spec::{SEQTxs, NodeKitBlockInfo, NodeKitValidity, DaLayerSpec};
-use crate::da_verifier::verifier::NodeKitVerifier;
 use sov_rollup_interface::da::DaSpec;
 //check repo: https://github.com/AnomalyFi/rust-seq-rpc
 //for getting block information
 use nodekit_seq_sdk;
 use nodekit_seq_sdk::client::jsonrpc_client::*;
-//types of all methods
 use nodekit_seq_sdk::types::types::*;
+//others
 use std::sync::Arc;
 use tokio::time::Duration;
-
 use async_trait::async_trait;
-
 use sha2::{Sha256, Digest};
 use ::serde::{Serialize, Deserialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use anyhow::Error;
+//in repo
+use crate::da_spec::spec::{SEQTxs, NodeKitBlockInfo, NodeKitValidity, DaLayerSpec};
+use crate::da_verifier::verifier::NodeKitVerifier;
+
 
 #[derive(Debug)]
 pub struct NodeKitClient {
-    //same as chain id
+    //same as secondary chain id
     pub rollup_namespace: String,
     pub jsonrpc: JSONRPCClient,
     pub uri: String,
@@ -33,9 +33,8 @@ pub struct NodeKitClient {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NodeKitFilteredBlock {
     pub header: NodeKitBlockInfo,
-    //todo: raw txs data or hashed tx data(SEQTxs)?
     pub transactions: Vec<SEQTransaction>,
-    //needs proofs
+    //needs proofs(tbd in v1)
 }
 
 impl PartialEq for NodeKitFilteredBlock {
@@ -98,16 +97,13 @@ impl DaService for NodeKitClient {
 
     // Make an RPC call to the node to get the finalized block at the given height, if one exists.
     // If no such block exists, block until one does.
-    //note: finalized block is a block that has been validated and cannot be altered or removed from the blockchain without a significant cost(burning 33% ETH for example).
     fn get_finalized_at<'life0, 'async_trait>(
         &'life0 self,
         height: u64
     ) -> Pin<Box<dyn Future<Output = Result<Self::FilteredBlock, Self::Error>> + Send + 'async_trait>>
        where Self: 'async_trait,
              'life0: 'async_trait {
-        // Create a single `Arc` client instance for efficient reuse
-        //Arc shares the RPC client connection between functions, avoiding duplicate connections 
-        //and network overload that could slow down the server.
+
         Box::pin(async move {
             let client = Arc::new(NodeKitClient::new(
                 &self.uri.clone(),
@@ -116,32 +112,28 @@ impl DaService for NodeKitClient {
                 self.rollup_namespace.clone(),
                 self.secondary_chain_id.clone(),
             ).expect("Failed to create client"));
+
             let client_clone = Arc::clone(&client);
             let client_ref = Arc::as_ref(&client_clone);
-            // Construct arguments for fetching block headers
+
             //Fetches all block headers starting from the requested height up to the time user made request.
             let start = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64 * 1000;
             let end = start - 120 * 1000;
             let args = GetBlockHeadersByHeightArgs {height, end};
-            //match allows us to handle different outcomes from an expression
+
             match client_ref.jsonrpc.get_block_headers_by_height(args.height, args.end) {
-                //variable  below created for outcomes of match
-                // If above call is successful, then strong indication of finalized block
-                //and result is stored in block_headers_response.
+                
                 Ok(block_headers_response) => {
-                    // println!("{:?}", block_headers_response);
-                    // Check if any headers are present, indicating a finalized block
+                    
                     if !block_headers_response.blocks.is_empty() {
                         // Extract the first header assuming it's the finalized block
                         let finalized_block = block_headers_response.blocks[0].clone();
-                        // get hash of block which is used in proof(tbd)
-                        // let _block_hash = finalized_block.block_id.clone();
                         // Fetch relevant transactions for the rollup namespace
                         let bytes = self.rollup_namespace.as_bytes();
                         let hex_namespace = hex::encode(bytes); 
                         let transactions = client.jsonrpc.get_block_transactions_by_namespace(height, hex_namespace);
-                        // println!("extract txs: {:?}", transactions);
-                        let tx = Vec::new();  
+                        let tx = Vec::new();
+                        //checks if transactions returns a value and if so mark it as the tx.
                         if let Ok(transactions) = transactions {
                             let tx = transactions.txs;
                         }
@@ -149,8 +141,6 @@ impl DaService for NodeKitClient {
                             block: finalized_block,
                             header: block_headers_response,
                         };
-                        //TODO: verify that a transaction is included in a block
-                        //let inclusion_proof = client.get_inclusion_multiproof(block_hash).await?;
                         //returns `FilteredBlock` with all relevant info
                         return Ok(Self::FilteredBlock {
                             header: block_info,
@@ -179,8 +169,6 @@ impl DaService for NodeKitClient {
     ) -> Pin<Box<dyn Future<Output = Result<Self::FilteredBlock, Self::Error>> + Send + 'async_trait>>
        where Self: 'async_trait,
              'life0: 'async_trait {
-        //calls finalized at function with new height param since finalized is more secure
-        //and accomplishes the same.
         Box::pin(async move {
             let filtered_block = self.get_finalized_at(height).await?;
             Ok(filtered_block)
@@ -197,7 +185,6 @@ impl DaService for NodeKitClient {
              'life0: 'async_trait,
              'life1: 'async_trait,
              'life2: 'async_trait {
-                
         Box::pin(async {
             //needs proof logic 
             (vec![],vec![])
@@ -215,8 +202,6 @@ impl DaService for NodeKitClient {
              'life0: 'async_trait,
              'life1: 'async_trait {
         Box::pin(async {
-            //Discard the return value, as we only care about the success/failure of message transmission.
-            //todo figure out sec chain id.
             let _ = self.jsonrpc.submit_tx(self.jsonrpc.chain_id.clone(),self.jsonrpc.network_id,self.secondary_chain_id.clone(), blob.to_vec());
             Ok(())
         })
@@ -230,13 +215,12 @@ impl DaService for NodeKitClient {
         &self,
         block: &Self::FilteredBlock
     ) -> Vec<<Self::Spec as DaSpec>::BlobTransaction> {
-        // println!("block: {:?}", block);
         let mut relevant_txs = Vec::new();
-        // Fetch all transactions for the block's height and rollup namespace
+        //Fetch all transactions for the block's height and rollup namespace
         let bytes = self.rollup_namespace.as_bytes();
         let hex_namespace = hex::encode(bytes);
         let block_transactions = self.jsonrpc.get_block_transactions_by_namespace(block.header.block.height, hex_namespace.clone());
-        // println!("extract rel blob: {:?}", block_transactions);
+
         match block_transactions {
             Ok(block_transactions) => {
                 for tx in &block_transactions.txs {
@@ -266,11 +250,9 @@ impl DaService for NodeKitClient {
         Box::pin(async {
             //provided in library
             let relevant_txs = self.extract_relevant_blobs(block);
-
             let (etx_proofs, rollup_row_proofs) = self
                 .get_extraction_proof(block, relevant_txs.as_slice())
                 .await;
-
             (relevant_txs, etx_proofs, rollup_row_proofs)
         })
 
