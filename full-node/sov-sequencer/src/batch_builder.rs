@@ -126,8 +126,8 @@ where
         let mut working_set = WorkingSet::new(self.current_storage.clone());
         let mut txs = Vec::new();
         let mut current_batch_size = 0;
-
-        while let Some(mut pooled) = self.mempool.pop_front() {
+        //goes through mempool one at a time instead of loop
+        if let Some(mut pooled) = self.mempool.pop_front() {
             // Take the decoded runtime message cached upon accepting transaction
             // into the pool or attempt to decode the message again if
             // the transaction was previously executed,
@@ -152,26 +152,25 @@ where
 
             // In order to fill batch as big as possible, we only check if valid tx can fit in the batch.
             let tx_len = pooled.raw.len();
-            if current_batch_size + tx_len > self.max_batch_size_bytes {
+            if tx_len > self.max_batch_size_bytes {
                 self.mempool.push_front(pooled);
                 break;
             }
 
-            // Update size of current batch
-            current_batch_size += tx_len;
+            // // Update size of current batch
+            // current_batch_size += tx_len;
 
             let tx_hash: [u8; 32] = pooled.calculate_hash();
             info!(
                 hash = hex::encode(tx_hash),
                 "Transaction has been included in the batch",
             );
-            txs.push(pooled.raw);
+            //stores one tx from mempool
+            let txs = vec![pooled.raw];
+        } 
+        else {
+            bail!("No valid transactions are available")
         }
-
-        if txs.is_empty() {
-            bail!("No valid transactions are available");
-        }
-
         Ok(txs)
     }
 }
