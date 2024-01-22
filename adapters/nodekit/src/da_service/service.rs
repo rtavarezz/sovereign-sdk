@@ -20,7 +20,7 @@ use crate::da_spec::spec::{SEQTxs, NodeKitBlockInfo, NodeKitValidity, DaLayerSpe
 use crate::da_verifier::verifier::NodeKitVerifier;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeKitClient {
     //same as secondary chain id
     pub rollup_namespace: String,
