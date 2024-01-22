@@ -8,6 +8,7 @@ use sov_modules_api::transaction::Transaction;
 use sov_modules_api::{Context, DispatchCall, PublicKey, Spec, WorkingSet};
 use sov_rollup_interface::services::batch_builder::BatchBuilder;
 use tracing::{info, warn};
+use anyhow::anyhow;
 
 /// Transaction stored in the mempool.
 pub struct PooledTransaction<C: Context, R: DispatchCall<Context = C>> {
@@ -128,6 +129,7 @@ where
         let mut current_batch_size = 0;
         //goes through mempool one at a time instead of loop
         if let Some(mut pooled) = self.mempool.pop_front() {
+            // println!("{:?}", pooled);
             // Take the decoded runtime message cached upon accepting transaction
             // into the pool or attempt to decode the message again if
             // the transaction was previously executed,
@@ -146,27 +148,24 @@ where
 
                 if let Err(error) = self.runtime.dispatch_call(msg, &mut working_set, &ctx) {
                     warn!(%error, tx = hex::encode(&pooled.raw), "Error during transaction dispatch");
-                    continue;
-                }
+                    }
             }
 
             // In order to fill batch as big as possible, we only check if valid tx can fit in the batch.
             let tx_len = pooled.raw.len();
             if tx_len > self.max_batch_size_bytes {
                 self.mempool.push_front(pooled);
-                break;
+                return Err(anyhow!("Error: Transaction is too big. allowed size is: {}", self.max_batch_size_bytes));
             }
-
-            // // Update size of current batch
-            // current_batch_size += tx_len;
-
             let tx_hash: [u8; 32] = pooled.calculate_hash();
             info!(
                 hash = hex::encode(tx_hash),
                 "Transaction has been included in the batch",
             );
             //stores one tx from mempool
-            let txs = vec![pooled.raw];
+            // println!("raw {:?}", pooled.raw);
+            txs = vec![pooled.raw];
+            // println!("txs batch {:?}", txs);
         } 
         else {
             bail!("No valid transactions are available")

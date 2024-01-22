@@ -22,6 +22,7 @@ tracing = { workspace = true }
 sov-rollup-interface = { path = "../../rollup-interface", version = "0.3" }
 sov-modules-api = { path = "../../module-system/sov-modules-api", version = "0.3", features = ["native"] }
 sov-state = { path = "../../module-system/sov-state", version = "0.3" }
+nodekit_sov_adapter = { path = "../../adapters/nodekit"}
 
 
 [dev-dependencies]

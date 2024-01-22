@@ -1,12 +1,11 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 use std::sync::Mutex;
-
+extern crate nodekit_sov_adapter;
 /// Concrete implementations of `[BatchBuilder]`
 pub mod batch_builder;
 /// Utilities for the sequencer rpc
 pub mod utils;
-
 use anyhow::anyhow;
 use jsonrpsee::types::ErrorObjectOwned;
 use jsonrpsee::RpcModule;
@@ -45,9 +44,14 @@ impl<B: BatchBuilder + Send + Sync, T: DaService + Send + Sync> Sequencer<B, T> 
             batch_builder.get_next_blob()?
         };
         let num_txs = blob.len();
-        let blob: Vec<u8> = borsh::to_vec(&blob)?;
+        // Check that the blob contains exactly one transaction
+        assert_eq!(num_txs, 1, "get_next_blob did not return exactly one transaction");
 
-        match self.da_service.send_transaction(&blob).await {
+        // Extract the single transaction from the blob
+        let tx = &blob[0];
+        // let blob: Vec<u8> = borsh::to_vec(&blob)?;
+
+        match self.da_service.send_transaction(tx).await {
             Ok(_) => Ok(num_txs),
             Err(e) => Err(anyhow!("failed to submit batch: {:?}", e)),
         }
@@ -139,7 +143,6 @@ mod tests {
 
     use sov_mock_da::{MockAddress, MockDaService};
     use sov_rollup_interface::da::BlobReaderTrait;
-
     use super::*;
 
     /// BatchBuilder used in tests.
@@ -237,6 +240,55 @@ mod tests {
         let blob: Vec<Vec<u8>> = vec![vec![tx[0]]];
         let expected: Vec<u8> = borsh::to_vec(&blob).unwrap();
         assert_eq!(expected, block_data);
+    }
+
+    //code a unit test to test submit batch
+    #[tokio::test]
+    async fn test_submit_batch() {
+
+        let mut builder = MockBatchBuilder { mempool: vec![] };
+        let transactions: Vec<Vec<u8>> = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
+        let da_service = MockDaService::new(MockAddress::default());
+        let sequencer = Sequencer::new(builder, da_service.clone());
+
+        for (i,tx) in transactions.iter().enumerate() {
+            // println!("tx {:?}", &tx);
+            //adds the tx to the builder using accept_tx function
+            sequencer.batch_builder.lock().unwrap().accept_tx(tx.clone()).unwrap();
+
+            let result = sequencer.submit_batch().await;
+            // println!("batch {:?}", result);
+            assert!(result.is_ok(), "submit_batch failed");
+
+            let num_txs = result.unwrap();
+            // println!("num txs {:?}", num_txs);
+            //checking my work on submit batch returning 1 tx only.
+            assert_eq!(num_txs, 1, "submit_batch did not return exactly one transaction");
+            let mut submitted_block = da_service.get_block_at((i+1) as u64).await.unwrap();
+            // println!("block {:?}", submitted_block);
+            let block_data = submitted_block.blobs[0].full_data();
+            // println!("data {:?}", block_data);
+            assert_eq!(tx[0], block_data[0], "The submitted block data does not match the expected data");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_next_blob() {
+
+        let mut builder = MockBatchBuilder { mempool: vec![] };
+        let transactions: Vec<Vec<u8>> = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
+
+        for tx in transactions {
+            //accept tx first
+            builder.accept_tx(tx.clone()).unwrap();
+            let result = builder.get_next_blob();
+            assert!(result.is_ok(), "get_next_blob failed");
+
+            let txs = result.unwrap();
+            //checking my work again by making sure get next blob returns 1 transaction in vec<vec<u8>>
+            assert_eq!(txs.len(), 1, "get_next_blob did not return exactly one transaction");
+            assert!(!txs[0].is_empty(), "The transaction is empty");
+        }
     }
 
     #[tokio::test]
