@@ -1,3 +1,7 @@
+# How to test
+Go to src/lib.rs and fill in info from running SEQ.
+do cargo clean -> cargo build -> cargo test --release -- --nocapture
+
 # Sov-Sequencer
 
 Simple implementation of based sequencer generic over batch builder and DA service.

@@ -15,7 +15,7 @@ impl DaVerifier for NodeKitVerifier {
 
     //TODOs: Create a new da verifier with the given chain parameters
     fn new(_params: <Self::Spec as DaSpec>::ChainParams) -> Self {
-        todo!()
+        Self{}
     }
 
     //Verify a claimed set of transactions against a block header
@@ -25,7 +25,7 @@ impl DaVerifier for NodeKitVerifier {
         _txs: &[<Self::Spec as DaSpec>::BlobTransaction],
         _inclusion_proof: <Self::Spec as DaSpec>::InclusionMultiProof,
         _completeness_proof: <Self::Spec as DaSpec>::CompletenessProof,
-    ) -> Result<NodeKitValidity, Self::Error> {
+    ) -> Result<<Self::Spec as DaSpec>::ValidityCondition, Self::Error> {
         //placeholder, proofs will be included soon in version 1, tbd
         Ok(Default::default())
     }

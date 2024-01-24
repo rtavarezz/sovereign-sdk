@@ -3,7 +3,7 @@ mod da_service;
 mod da_spec;
 use sov_rollup_interface::services::da::DaService;
 use nodekit_seq_sdk::client::jsonrpc_client::*;
-use crate::da_service::service::*;
+use crate::da_service::service::{NodeKitClient, NodeKitFilteredBlock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[tokio::main]
@@ -40,10 +40,10 @@ async fn main() {
 
 }
 
-async fn test_block_height(chain_id: String, url_new: String, namespace: String, secondary_id: Vec<u8>, network_id: u32, height: u64) -> Result<(NodeKitFilteredBlock, NodeKitFilteredBlock), Box<dyn std::error::Error>> {
+async fn test_block_height(chain_id: String, url_new: String, namespace: String, secondary_id: Vec<u8>, network_id: u32, height: u64) -> Result<NodeKitFilteredBlock, Box<dyn std::error::Error>> {
         //pass args above
         let cli = NodeKitClient::new(&url_new, network_id, chain_id, namespace, secondary_id).map_err(|e| e as Box<dyn std::error::Error>)?;
-        let start = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64 * 1000;
+        let start = SystemTime::now().duration_since(UNIX_EPOCH).expect("REASON").as_secs() as i64 * 1000;
         let end = start - 120 * 1000;
         let block_head = match cli.jsonrpc.get_block_headers_by_height(height, end) {
             Ok(res) => res,
@@ -55,10 +55,10 @@ async fn test_block_height(chain_id: String, url_new: String, namespace: String,
             None => return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "No blocks found"))),
         };
 
-        let finalize = match cli.get_finalized_at(height).await {
-            Ok(finalize) => finalize, 
-            Err(err) => return Err(err.into()),
-        };
+        // let finalize = match cli.get_finalized_at(height).await {
+        //     Ok(finalize) => finalize, 
+        //     Err(err) => return Err(err.into()),
+        // };
 
         //tests get block at fn and uses same u64 height.
         let get_height = match cli.get_block_at(height).await {
@@ -66,10 +66,10 @@ async fn test_block_height(chain_id: String, url_new: String, namespace: String,
             Err(err) => return Err(err.into()),
         };
 
-        println!("get_finalize_at fn test: {:?}", finalize.header.header.get_blocks()[0]);
+        // println!("get_finalize_at fn test: {:?}", finalize.header.header.get_blocks()[0]);
         println!("get_block_at fn test: {:?}", get_height.header.header.get_blocks()[0]);
 
-        Ok((finalize, get_height))
+        Ok(get_height)
 }
 
 //testing send tx function

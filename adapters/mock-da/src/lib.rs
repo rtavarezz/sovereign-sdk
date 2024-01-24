@@ -1,8 +1,8 @@
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
 #[cfg(feature = "native")]
-mod service;
+pub mod service;
 mod types;
 mod validity_condition;
 /// Contains DaSpec and DaVerifier

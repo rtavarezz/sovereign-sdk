@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::io::Cursor;
 
+use anyhow::anyhow;
 use anyhow::{bail, Context as ErrorContext};
 use borsh::BorshDeserialize;
 use sov_modules_api::digest::Digest;
@@ -8,7 +9,6 @@ use sov_modules_api::transaction::Transaction;
 use sov_modules_api::{Context, DispatchCall, PublicKey, Spec, WorkingSet};
 use sov_rollup_interface::services::batch_builder::BatchBuilder;
 use tracing::{info, warn};
-use anyhow::anyhow;
 
 /// Transaction stored in the mempool.
 pub struct PooledTransaction<C: Context, R: DispatchCall<Context = C>> {
@@ -121,7 +121,7 @@ where
         Ok(())
     }
 
-    /// Builds a new batch of valid transactions in order they were added to mempool
+    /// Builds a new batch of valid transactions in order they were added to mempool(FIFO)
     /// Only transactions, which are dispatched successfully are included in the batch
     fn get_next_blob(&mut self) -> anyhow::Result<Vec<Vec<u8>>> {
         let mut working_set = WorkingSet::new(self.current_storage.clone());
@@ -148,14 +148,17 @@ where
 
                 if let Err(error) = self.runtime.dispatch_call(msg, &mut working_set, &ctx) {
                     warn!(%error, tx = hex::encode(&pooled.raw), "Error during transaction dispatch");
-                    }
+                }
             }
 
             // In order to fill batch as big as possible, we only check if valid tx can fit in the batch.
             let tx_len = pooled.raw.len();
             if tx_len > self.max_batch_size_bytes {
                 self.mempool.push_front(pooled);
-                return Err(anyhow!("Error: Transaction is too big. allowed size is: {}", self.max_batch_size_bytes));
+                return Err(anyhow!(
+                    "Error: Transaction is too big. allowed size is: {}",
+                    self.max_batch_size_bytes
+                ));
             }
             let tx_hash: [u8; 32] = pooled.calculate_hash();
             info!(
@@ -166,8 +169,7 @@ where
             // println!("raw {:?}", pooled.raw);
             txs = vec![pooled.raw];
             // println!("txs batch {:?}", txs);
-        } 
-        else {
+        } else {
             bail!("No valid transactions are available")
         }
         Ok(txs)

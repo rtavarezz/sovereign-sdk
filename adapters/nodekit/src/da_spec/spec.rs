@@ -26,8 +26,8 @@ use anyhow::Error;
 // mod service;
 // mod verifier;
 
-#[derive(Debug, Eq, PartialEq, Clone)]
-pub struct DaLayerSpec;
+// #[derive(Debug, Eq, PartialEq, Clone)]
+// pub struct DaLayerSpec;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NodeKitBlockInfo {
@@ -167,6 +167,9 @@ impl BlobReader for SEQTxs {
     fn total_len(&self) -> usize {
         self.0.transaction.len()
     }
+    fn advance(&mut self, _: usize) -> &[u8] { 
+        todo!() 
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Copy, Eq, Hash, Default, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
@@ -182,6 +185,8 @@ impl Validity for NodeKitValidity {
         Ok(_rhs)
     }
 }
+#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct DaLayerSpec;
 
 impl DaSpec for DaLayerSpec {
 
