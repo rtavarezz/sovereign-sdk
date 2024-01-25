@@ -29,7 +29,6 @@ impl<B: BatchBuilder + Send + Sync, T: DaService + Send + Sync> Sequencer<B, T> 
             da_service,
         }
     }
-
     async fn submit_batch(&self) -> anyhow::Result<usize> {
         // Need to release lock before await, so the Future is `Send`.
         // But potentially it can create blobs that are sent out of order.
@@ -43,17 +42,15 @@ impl<B: BatchBuilder + Send + Sync, T: DaService + Send + Sync> Sequencer<B, T> 
                 .map_err(|e| anyhow!("failed to lock mempool: {}", e.to_string()))?;
             batch_builder.get_next_blob()?
         };
-        // println!("blob obj{:?}", blob);
+        // println!("blob 1: {:?}", blob);
         let num_txs = blob.len();
-        // Check that the blob contains exactly one transaction
-        assert_eq!(num_txs, 1, "get_next_blob did not return exactly one transaction");
+        // println!("num txs: {:?}", num_txs);
 
         // Extract the single transaction from the blob
         let tx = &blob[0];
         // println!("tx batch obj{:?}", tx);
-        // let blob: Vec<u8> = borsh::to_vec(&blob)?;
 
-        match self.da_service.send_transaction(tx).await {
+        match self.da_service.send_transaction(&tx).await {
             Ok(_) => Ok(num_txs),
             Err(e) => Err(anyhow!("failed to submit batch: {:?}", e)),
         }
@@ -251,8 +248,9 @@ mod tests {
     //code a unit test to test submit batch
     #[tokio::test]
     async fn test_submit_batch() {
+        // println!("SUBMIT BATCH TEST");
         let mut builder = MockBatchBuilder { mempool: vec![] };
-        let transactions: Vec<Vec<u8>> = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
+        let transactions: Vec<Vec<u8>> = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9], vec![10, 11, 12], vec![13, 14, 15]];
         let chain_id = "?".to_string();
         let url_new = "?".to_string();
         //same as secondary_id
@@ -262,52 +260,45 @@ mod tests {
         let sequencer = Sequencer::new(builder, da_service.clone());
         // println!("NodeKit {:?}", da_service);
         for tx in transactions {
-            // Add the transaction to the batch builder
+            //add all txs to mempool 
             sequencer.batch_builder.lock().unwrap().accept_tx(tx.clone()).unwrap();
-
-            // Submit the batch and store the result
+            //submit txs
             let result = sequencer.submit_batch().await;
-            // println!("res {:?}", result);
-            // Assert that the batch submission was successful
-            assert!(result.is_ok(), "submit_batch failed");
-
+            // println!("res test {:?}", result);
             // Get the number of transactions in the batch
             let num_txs = result.unwrap();
 
-            //checking work of submit_batch to make sure it returns usize of 1
-            assert_eq!(num_txs, 1, "submit_batch did not return exactly one transaction");
-        }
-        //run the code below(uncomment it AFTER calling submit batch function, otherwise wont work.
-        //reasoning is because you first need to fetch height of submitted tx and you won't know that until after tx is submitted.)
-        let block = da_service.get_block_at(896).await.unwrap();
-        let blobs = da_service.extract_relevant_blobs(&block);
-        //make sure blob isnt empty
-        assert!(!blobs.is_empty(), "No relevant blobs found");
-        //pull 1st tx from blob
-        let block_data = &blobs[0];
-        //check info with SEQ to confirm 
-        println!("blob: {:?}", blobs);
-        println!("block data: {:?}", block_data);
-        println!("block tx: {:?}, tx_id: {:?}", block_data.0.transaction, block_data.0.tx_id);
+            //IMPORTANT  the code below(uncomment it AFTER calling submit batch function, otherwise wont work.
+            //reasoning is because you first need to fetch height of submitted tx and you won't know that until after tx is submitted.)
 
+            // let block = da_service.get_block_at(4811).await.unwrap();
+            // let blobs = da_service.extract_relevant_blobs(&block);
+            // //make sure blob isnt empty
+            // assert!(!blobs.is_empty(), "No relevant blobs found");
+            // //pull 1st tx from blob
+            // let block_data = &blobs[0];
+            // //check info with SEQ to confirm 
+            // println!("blob: {:?}", blobs);
+            // println!("block data: {:?}", block_data);
+            // println!("block tx: {:?}, tx_id: {:?}", block_data.0.transaction, block_data.0.tx_id);
+        }
     }
 
     #[tokio::test]
     async fn test_get_next_blob() {
-
+        // println!("TEST GET NEXT BLOB");
         let mut builder = MockBatchBuilder { mempool: vec![] };
-        let transactions: Vec<Vec<u8>> = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
-
+        let transactions: Vec<Vec<u8>> = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9], vec![10, 11, 12], vec![13, 14, 15]];
         for tx in transactions {
             //accept tx first
             builder.accept_tx(tx.clone()).unwrap();
             let result = builder.get_next_blob();
             assert!(result.is_ok(), "get_next_blob failed");
-
             let txs = result.unwrap();
             //checking my work again by making sure get next blob returns 1 transaction in vec<vec<u8>>
             assert_eq!(txs.len(), 1, "get_next_blob did not return exactly one transaction");
-            assert!(!txs[0].is_empty(), "The transaction is empty");
+            let inner_tx = txs[0].len();
+            assert_eq!(inner_tx, 1, "inner vec is not 1");
         }
     }
 

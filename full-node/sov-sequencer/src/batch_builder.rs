@@ -129,7 +129,7 @@ where
         let mut current_batch_size = 0;
         //goes through mempool one at a time instead of loop
         if let Some(mut pooled) = self.mempool.pop_front() {
-            // println!("{:?}", pooled);
+            //println!("{:?}", pooled);
             // Take the decoded runtime message cached upon accepting transaction
             // into the pool or attempt to decode the message again if
             // the transaction was previously executed,
@@ -168,7 +168,7 @@ where
             //stores one tx from mempool
             // println!("raw {:?}", pooled.raw);
             txs = vec![pooled.raw];
-            // println!("txs batch {:?}", txs);
+            println!("txs batch {:?}", txs);
         } else {
             bail!("No valid transactions are available")
         }
