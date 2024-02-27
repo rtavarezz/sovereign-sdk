@@ -251,11 +251,11 @@ mod tests {
         // println!("SUBMIT BATCH TEST");
         let mut builder = MockBatchBuilder { mempool: vec![] };
         let transactions: Vec<Vec<u8>> = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9], vec![10, 11, 12], vec![13, 14, 15]];
-        let chain_id = "?".to_string();
-        let url_new = "?".to_string();
+        let chain_id = "chain id 0 from SEQ".to_string();
+        let url_new = "uri from SEQ".to_string();
         //same as secondary_id
-        let namespace = "?".to_string();
-        let secondary_id = "?".as_bytes().to_vec();
+        let namespace = "chain id 1 from SEQ".to_string();
+        let secondary_id = "same chain id 1 as namespace".as_bytes().to_vec();
         let da_service = NodeKitClient::new(&url_new, 1337, chain_id, namespace, secondary_id).expect("NodeKitClient failed");
         let sequencer = Sequencer::new(builder, da_service.clone());
         // println!("NodeKit {:?}", da_service);
@@ -267,21 +267,20 @@ mod tests {
             // println!("res test {:?}", result);
             // Get the number of transactions in the batch
             let num_txs = result.unwrap();
-
-            //IMPORTANT  the code below(uncomment it AFTER calling submit batch function, otherwise wont work.
-            //reasoning is because you first need to fetch height of submitted tx and you won't know that until after tx is submitted.)
-
-            // let block = da_service.get_block_at(4811).await.unwrap();
-            // let blobs = da_service.extract_relevant_blobs(&block);
-            // //make sure blob isnt empty
-            // assert!(!blobs.is_empty(), "No relevant blobs found");
-            // //pull 1st tx from blob
-            // let block_data = &blobs[0];
-            // //check info with SEQ to confirm 
-            // println!("blob: {:?}", blobs);
-            // println!("block data: {:?}", block_data);
-            // println!("block tx: {:?}, tx_id: {:?}", block_data.0.transaction, block_data.0.tx_id);
         }
+        //IMPORTANT  the code below(uncomment it AFTER calling submit batch function, otherwise wont work.
+        //reasoning is because you first need to fetch height of submitted tx and you won't know that until after tx is submitted.)
+
+        // let block = da_service.get_block_at(1).await.unwrap();
+        // let blobs = da_service.extract_relevant_blobs(&block);
+        // //make sure blob isnt empty
+        // assert!(!blobs.is_empty(), "No relevant blobs found");
+        // //pull 1st tx from blob
+        // let block_data = &blobs[0];
+        // //check info with SEQ to confirm 
+        // println!("blob: {:?}\n", blobs);
+        // println!("block data: {:?}\n", block_data);
+        // println!("block tx: {:?}, tx_id: {:?}\n", block_data.0.transaction, block_data.0.tx_id);
     }
 
     #[tokio::test]
