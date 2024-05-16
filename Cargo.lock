@@ -239,9 +239,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.79"
+version = "1.0.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "080e9890a082662b09c1ad45f567faeeb47f22b5fb23895fbe1e651e718e25ca"
+checksum = "25bdb32cbbdce2b519a9cd7df3a678443100e265d5e25ca763b7572a5104f5f3"
 
 [[package]]
 name = "arbitrary"
@@ -1183,9 +1183,9 @@ checksum = "771fe0050b883fcc3ea2359b1a96bcfbc090b7116eae7c3c512c7a083fdf23d3"
 
 [[package]]
 name = "bs58"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5353f36341f7451062466f0b755b96ac3a9547e4d7f6b70d603fc721a7d7896"
+checksum = "bf88ba1141d185c399bee5288d850d63b8369520c1eafc32a0430b5b6c287bf4"
 dependencies = [
  "sha2 0.10.8",
  "tinyvec",
@@ -1570,7 +1570,7 @@ version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b6be4a5df2098cd811f3194f64ddb96c267606bffd9689ac7b0160097b01ad3"
 dependencies = [
- "bs58 0.5.0",
+ "bs58 0.5.1",
  "coins-core",
  "digest 0.10.7",
  "hmac 0.12.1",
@@ -1604,7 +1604,7 @@ checksum = "5286a0843c21f8367f7be734f89df9b822e0321d8bcce8d6e735aadff7d74979"
 dependencies = [
  "base64 0.21.7",
  "bech32",
- "bs58 0.5.0",
+ "bs58 0.5.1",
  "digest 0.10.7",
  "generic-array 0.14.7",
  "hex",
@@ -5406,6 +5406,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "nodekit_relay_rust"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ca40fa798d19a557e2f788ece4f47ae64b2901fd203ada2a183ebcc6d4c1312"
+dependencies = [
+ "anyhow",
+ "bs58 0.5.1",
+ "nodekit_seq_sdk 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.10.8",
+]
+
+[[package]]
+name = "nodekit_seq_sdk"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8796ad747fb8e694ccb53e664c679a00bef3895b3615add42baff314e7fbc1b4"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "context",
+ "http",
+ "reqwest",
+ "serde",
+ "serde_bytes_ng",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "nodekit_seq_sdk"
 version = "0.2.0"
 source = "git+https://github.com/AnomalyFi/rust-seq-rpc#a4d24a40da279780df79608ac92c7bd8617d6f43"
@@ -5429,11 +5461,12 @@ dependencies = [
  "async-trait",
  "borsh",
  "broadcast",
- "bs58 0.5.0",
+ "bs58 0.5.1",
  "context",
  "futures",
  "hex",
- "nodekit_seq_sdk",
+ "nodekit_relay_rust",
+ "nodekit_seq_sdk 0.2.0 (git+https://github.com/AnomalyFi/rust-seq-rpc)",
  "pin-project",
  "reqwest",
  "serde",
@@ -8279,9 +8312,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.111"
+version = "1.0.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "176e46fa42316f18edd598015a5166857fc835ec732f5215eac6b7bdbf0a84f4"
+checksum = "455182ea6142b14f93f4bc5320a2b31c1f266b66a4a5c858b013302a5d8cbfc3"
 dependencies = [
  "itoa",
  "ryu",
@@ -9582,7 +9615,7 @@ dependencies = [
  "bitflags 1.3.2",
  "blake2",
  "bounded-collections",
- "bs58 0.5.0",
+ "bs58 0.5.1",
  "dyn-clonable",
  "ed25519-zebra",
  "futures",

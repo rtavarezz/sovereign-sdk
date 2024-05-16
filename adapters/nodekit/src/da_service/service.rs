@@ -6,6 +6,10 @@ use sov_rollup_interface::da::DaSpec;
 use nodekit_seq_sdk;
 use nodekit_seq_sdk::client::jsonrpc_client::*;
 use nodekit_seq_sdk::types::types::*;
+// relayer 
+use nodekit_relay_rust;
+use nodekit_relay_rust::rpc::*;
+use nodekit_relay_rust::config::config::*;
 //others
 use std::sync::Arc;
 use tokio::time::Duration;
@@ -186,7 +190,7 @@ impl DaService for NodeKitClient {
         (vec![],vec![])
     }
 
-    // Send a transaction directly to the DA layer(SEQ in our case). 
+    // Send a transaction directly to SEQ. 
     // `blob` is the serialized and signed transaction. 
     // Returns nothing if the transaction was successfully sent.
     async fn send_transaction(&self, blob: &[u8]) -> Result<(), Self::Error> {
