@@ -2,17 +2,18 @@
 
 NOT production ready, still testing and optimizing. Also, do cargo run --release to run main.rs, cargo run fails(will be fixed tbd).
 
-# NodeKit Rust RPC
+# NodeKit RPC & Relayer
 
 nodekit_seq_sdk rust crate: https://github.com/AnomalyFi/rust-seq-rpc 
 to see paths for methods, run the rust-seq-rpc repo and do "cargo doc --open"
 
 crates.io: https://crates.io/crates/nodekit_seq_sdk > Documentation
 
+![diagram on how sovereign interacts with the Relayer](https://github.com/AnomalyFi/nodekit-sovereign-sdk/blob/main/adapters/nodekit/src/img/Relayer.png)
+
 # Sovereign SDK - Nightly Builds
 
 sovereign sdk repo: https://github.com/Sovereign-Labs/sovereign-sdk/tree/nightly
-
 
 # Da Adapter Template
 
