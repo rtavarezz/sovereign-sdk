@@ -4,11 +4,13 @@ NOT production ready, still testing and optimizing. Also, do cargo run --release
 
 # NodeKit RPC & Relayer
 
-nodekit_seq_sdk rust crate: https://github.com/AnomalyFi/rust-seq-rpc 
+nodekit_seq_sdk rust: https://github.com/AnomalyFi/rust-seq-rpc 
 to see paths for methods, run the rust-seq-rpc repo and do "cargo doc --open"
 
-crates.io: https://crates.io/crates/nodekit_seq_sdk > Documentation
+nodekit_relayer_rust: https://github.com/AnomalyFi/relayer-rust 
+to understand the relayer client function calls.
 
+diagram on how sovereign interacts with the relayer:
 ![diagram on how sovereign interacts with the Relayer](https://github.com/AnomalyFi/nodekit-sovereign-sdk/blob/main/adapters/nodekit/src/img/Relayer.png)
 
 # Sovereign SDK - Nightly Builds
